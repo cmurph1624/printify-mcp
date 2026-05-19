@@ -4,7 +4,7 @@
 // No need for fs and path imports
 import { PrintifyAPI } from '../printify-api.js';
 import { formatErrorResponse, formatSuccessResponse } from '../utils/error-handler.js';
-import { getFileInfo } from '../utils/file-utils.js';
+import { getFileInfo, validateFilePath } from '../utils/file-utils.js';
 
 /**
  * Normalize a file path
@@ -66,7 +66,8 @@ export async function uploadImageToPrintify(
 
     if (sourceType === 'file') {
       // Handle file upload
-      const filePath = normalizeFilePath(source);
+      let filePath = normalizeFilePath(source);
+      filePath = validateFilePath(filePath, 'read');
 
       // Validate file exists
       const fileInfo = getFileInfo(filePath);
@@ -115,18 +116,18 @@ export async function uploadImageToPrintify(
             console.error(`- Read test failed: ${readError.message || readError}`);
           }
 
-          // Create a debug directory and copy the file there
-          try {
-            const debugDir = path.join(process.cwd(), 'debug');
-            if (!fs.existsSync(debugDir)) {
-              fs.mkdirSync(debugDir, { recursive: true });
+          if (process.env.DEBUG) {
+            try {
+              const debugDir = path.join(process.cwd(), 'debug');
+              if (!fs.existsSync(debugDir)) {
+                fs.mkdirSync(debugDir, { recursive: true });
+              }
+              const debugFilePath = path.join(debugDir, `upload_${Date.now()}_${path.basename(filePath)}`);
+              fs.copyFileSync(filePath, debugFilePath);
+              console.log(`Debug copy: ${debugFilePath}`);
+            } catch (copyError: any) {
+              console.error(`Debug copy failed: ${copyError.message || copyError}`);
             }
-
-            const debugFilePath = path.join(debugDir, `upload_${Date.now()}_${path.basename(filePath)}`);
-            fs.copyFileSync(filePath, debugFilePath);
-            console.log(`- Debug copy: ${debugFilePath}`);
-          } catch (copyError: any) {
-            console.error(`- Debug copy failed: ${copyError.message || copyError}`);
           }
         } else {
           console.error(`ERROR: File does not exist at upload time: ${filePath}`);
@@ -197,93 +198,14 @@ export async function uploadImageToPrintify(
       tips.push('Make sure the base64 string is valid and represents an image');
     }
 
-    // Gather as much diagnostic information as possible
     const diagnosticInfo: any = {
       FileName: fileName,
       SourceType: sourceTypeLabel,
-      Source: sourceType === 'url' ? source : (sourceType === 'file' ? source : `${source.substring(0, 30)}...`),
-      CurrentShop: printifyClient.getCurrentShop(),
-      ErrorType: error.constructor.name,
-      ErrorStack: error.stack,
       ErrorMessage: error.message,
-      CurrentWorkingDirectory: process.cwd(),
-      NodeVersion: process.version,
-      Platform: process.platform,
-      // Add Printify client information
-      PrintifyClientInitialized: !!printifyClient,
-      PrintifyShopId: printifyClient.getCurrentShopId(),
-      PrintifyAvailableShops: printifyClient.getAvailableShops().length
     };
 
-    // Add file-specific diagnostics if it's a file
-    if (sourceType === 'file') {
-      const filePath = normalizeFilePath(source);
-      const fileInfo = getFileInfo(filePath);
-      diagnosticInfo.FileExists = fileInfo.exists;
-      diagnosticInfo.FileSize = fileInfo.exists ? fileInfo.size + ' bytes' : 'N/A';
-
-      // Try to get more file details if it exists
-      if (fileInfo.exists) {
-        try {
-          // Use dynamic imports for fs
-          const fsPromise = import('fs');
-          const pathPromise = import('path');
-
-          // Wait for imports to complete
-          const [fsModule, pathModule] = await Promise.all([fsPromise, pathPromise]);
-          const fs = fsModule.default || fsModule;
-          const path = pathModule.default || pathModule;
-
-          const stats = fs.statSync(filePath);
-          diagnosticInfo.FileCreated = stats.birthtime;
-          diagnosticInfo.FileModified = stats.mtime;
-          diagnosticInfo.FilePermissions = stats.mode.toString(8);
-          diagnosticInfo.AbsolutePath = path.resolve(filePath);
-
-          // Try to read the first few bytes to verify content
-          try {
-            const buffer = Buffer.alloc(10);
-            const fd = fs.openSync(filePath, 'r');
-            // Read the first 10 bytes
-            const bytesRead = fs.readSync(fd, buffer, 0, 10, 0);
-            fs.closeSync(fd);
-            diagnosticInfo.FileReadable = true;
-            diagnosticInfo.BytesRead = bytesRead;
-            diagnosticInfo.FileFirstBytes = buffer.toString('hex').substring(0, 20);
-
-            // Check file signature to determine if it's a valid image
-            const hexSignature = buffer.toString('hex').substring(0, 8).toLowerCase();
-            let fileType = 'unknown';
-
-            // Check common image signatures
-            if (hexSignature.startsWith('89504e47')) {
-              fileType = 'PNG';
-            } else if (hexSignature.startsWith('ffd8ffe')) {
-              fileType = 'JPEG';
-            } else if (hexSignature.startsWith('52494646')) {
-              fileType = 'WEBP';
-            } else if (hexSignature.startsWith('3c737667')) {
-              fileType = 'SVG';
-            }
-
-            diagnosticInfo.DetectedFileType = fileType;
-            diagnosticInfo.FileSignature = hexSignature;
-          } catch (readError: any) {
-            diagnosticInfo.FileReadable = false;
-            diagnosticInfo.FileReadError = readError.message || String(readError);
-          }
-        } catch (statError: any) {
-          diagnosticInfo.FileStatError = statError.message || String(statError);
-        }
-      }
-    }
-
-    // Add error details if available
     if (error.response) {
       diagnosticInfo.PrintifyResponseStatus = error.response.status;
-      diagnosticInfo.PrintifyResponseStatusText = error.response.statusText;
-      diagnosticInfo.PrintifyResponseData = error.response.data;
-      diagnosticInfo.PrintifyResponseHeaders = error.response.headers;
     }
 
     return {

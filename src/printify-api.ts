@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Printify from 'printify-sdk-js';
 import sharp from 'sharp';
+import { validateFilePath } from './utils/file-utils.js';
 
 // Shop interface
 export interface PrintifyShop {
@@ -24,11 +25,11 @@ export class PrintifyAPI {
     // Initialize the Printify SDK client
     this.client = new Printify({
       accessToken: apiToken,
-      shopId: shopId || undefined, // Only pass shopId if it's provided
-      enableLogging: true
+      shopId: shopId || undefined,
+      enableLogging: false
     });
 
-    console.log('Printify API client initialized with token:', apiToken.substring(0, 5) + '...');
+    console.log('Printify API client initialized.');
 
     // Set the shop ID if provided
     if (shopId) {
@@ -63,7 +64,7 @@ export class PrintifyAPI {
             this.client = new Printify({
               accessToken: this.apiToken,
               shopId: this.shopId,
-              enableLogging: true
+              enableLogging: false
             });
           }
         } else {
@@ -125,7 +126,7 @@ export class PrintifyAPI {
     this.client = new Printify({
       accessToken: this.apiToken,
       shopId: shopId,
-      enableLogging: true
+      enableLogging: false
     });
 
     console.log(`Shop ID set to: ${shopId} (created new client instance)`);
@@ -458,13 +459,7 @@ export class PrintifyAPI {
         error.validationErrors = error.response.data.errors;
       }
 
-      // Log the complete error response for debugging
-      console.error('Complete error response:', JSON.stringify({
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data,
-        headers: error.response.headers
-      }, null, 2));
+      console.error('API error:', error.response.status, error.response.statusText);
     }
 
     if (requestData) {
@@ -501,7 +496,7 @@ export class PrintifyAPI {
             filePath = filePath.substring(1);
           }
 
-          console.log(`Normalized file path: ${filePath}`);
+          filePath = validateFilePath(filePath, 'read');
 
           // Check if file exists
           if (!fs.existsSync(filePath)) {
@@ -586,22 +581,7 @@ export class PrintifyAPI {
           console.error('Error reading file:', error);
           const errorMessage = error.message || 'Unknown error';
 
-          // Create a detailed error message with troubleshooting information
-          let detailedError = `Failed to process file ${source}: ${errorMessage}\n\n`;
-          detailedError += 'Troubleshooting steps:\n';
-          detailedError += '1. Check if the file exists and is readable\n';
-          detailedError += '2. Make sure the file is a valid image (PNG, JPEG, etc.)\n';
-          detailedError += '3. Try using a URL or base64 encoded string instead\n';
-          detailedError += '\nFile processing details:\n';
-          detailedError += `- Attempted to read from: ${source}\n`;
-          detailedError += `- Current working directory: ${process.cwd()}\n`;
-
-          // Add stack trace
-          if (error.stack) {
-            detailedError += `\nStack trace:\n${error.stack}\n`;
-          }
-
-          throw new Error(detailedError);
+          throw new Error(`Failed to process file: ${errorMessage}`);
         }
       } else if (source.startsWith('data:image/')) {
         // If source is base64 data with data URL prefix
@@ -617,29 +597,7 @@ export class PrintifyAPI {
     } catch (error: any) {
       console.error('Error uploading image:', error);
 
-      // Add detailed debugging information
-      const debugInfo: any = {
-        fileName,
-        sourceType: typeof source,
-        sourceLength: source.length,
-        currentWorkingDir: process.cwd(),
-        errorMessage: error.message,
-        errorStack: error.stack
-      };
-
-      console.error('Detailed upload error information:', JSON.stringify(debugInfo, null, 2));
-
-      // If there's a response object, extract and log the full response data
-      if (error.response) {
-        console.error('Response status:', error.response.status);
-        console.error('Response data:', JSON.stringify(error.response.data, null, 2));
-
-        // Add the full response data to the debug info
-        debugInfo.responseStatus = error.response.status;
-        debugInfo.responseData = error.response.data;
-      }
-
-      throw this.enhanceError(error, debugInfo);
+      throw this.enhanceError(error);
     }
   }
 }

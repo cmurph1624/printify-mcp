@@ -783,17 +783,10 @@ server.tool(
       try {
         documentation = await readFile(filePath, 'utf8');
       } catch (readError: any) {
-        // Get current working directory for debugging
-        const cwd = process.cwd();
-
         return {
           content: [{
             type: "text",
-            text: `Documentation for topic "${topic}" not found. Available topics are: product_creation, blueprints, print_providers, variants, images, publishing, image_generation\n\n` +
-                  `Debug info:\n` +
-                  `- Current working directory: ${cwd}\n` +
-                  `- Attempted file path: ${filePath}\n` +
-                  `- Error: ${readError.message}`
+            text: `Documentation for topic "${topic}" not found. Available topics are: product_creation, blueprints, print_providers, variants, images, publishing, image_generation`
           }],
           isError: true
         };
@@ -1030,30 +1023,22 @@ server.tool(
       `- Model used: ${usingModel}`
     ].join('\n');
 
-    // Save the base64 data to a debug file for inspection
-    try {
-      const fs = await import('fs');
-      const path = await import('path');
-
-      // Create a debug directory if it doesn't exist
-      const debugDir = path.join(process.cwd(), 'debug');
-      if (!fs.existsSync(debugDir)) {
-        fs.mkdirSync(debugDir, { recursive: true });
+    if (process.env.DEBUG) {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const debugDir = path.join(process.cwd(), 'debug');
+        if (!fs.existsSync(debugDir)) {
+          fs.mkdirSync(debugDir, { recursive: true });
+        }
+        const debugFilePath = path.join(debugDir, `debug_${Date.now()}_${finalFileName}`);
+        if (imageBuffer) {
+          fs.writeFileSync(debugFilePath, imageBuffer);
+          console.log(`Saved debug image: ${debugFilePath}`);
+        }
+      } catch (debugError) {
+        console.error('Error saving debug file:', debugError);
       }
-
-      // Save the base64 data to a file for debugging
-      const debugFilePath = path.join(debugDir, `debug_${Date.now()}_${finalFileName}`);
-
-      // Save buffer directly to debug file
-      if (imageBuffer) {
-        fs.writeFileSync(debugFilePath, imageBuffer);
-        console.log(`Saved image data to debug file: ${debugFilePath}`);
-        console.log(`Debug file size: ${imageBuffer.length} bytes`);
-      } else {
-        console.error('No image data to save for debugging');
-      }
-    } catch (debugError) {
-      console.error('Error saving debug file:', debugError);
     }
 
     // Validate input data
@@ -1374,15 +1359,19 @@ server.tool(
     }
 
     try {
+      // Validate the output path is within the allowed directory
+      const { validateFilePath } = await import('./utils/file-utils.js');
+      const validatedPath = validateFilePath(outputPath, 'write');
+
       // Create the directory if it doesn't exist
-      const outputDir = path.dirname(outputPath);
+      const outputDir = path.dirname(validatedPath);
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
       // Save the buffer directly to the specified output path
       if (imageBuffer) {
-        fs.writeFileSync(outputPath, imageBuffer);
+        fs.writeFileSync(validatedPath, imageBuffer);
       } else {
         throw new Error('No image data available to save');
       }
@@ -1393,7 +1382,7 @@ server.tool(
         {
           Prompt: prompt,
           Model: usingModel.split('/')[1],
-          'Output Path': outputPath,
+          'Output Path': validatedPath,
           'File Name': finalFileName,
           'File Size': `${imageBuffer ? imageBuffer.length : 0} bytes`,
           'Dimensions': dimensions || `${width}x${height}`,
@@ -1413,7 +1402,7 @@ server.tool(
             ...(seed !== undefined ? { 'Seed': seed } : {})
           }
         },
-        `Image has been successfully generated and saved to: ${outputPath}`
+        `Image has been successfully generated and saved to: ${validatedPath}`
       ) as { content: any[], isError?: boolean };
 
       return response;

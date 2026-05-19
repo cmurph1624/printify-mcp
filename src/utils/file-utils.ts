@@ -47,6 +47,25 @@ export function cleanupFiles(filePaths: string[]): void {
 }
 
 /**
+ * Validate that a file path is within an allowed base directory.
+ * Prevents path traversal attacks from reaching sensitive files.
+ */
+export function validateFilePath(filePath: string, operation: 'read' | 'write'): string {
+  const baseDir = process.env.ALLOWED_FILE_DIR || process.cwd();
+  const resolved = path.resolve(filePath);
+  const resolvedBase = path.resolve(baseDir);
+
+  if (!resolved.startsWith(resolvedBase + path.sep) && resolved !== resolvedBase) {
+    throw new Error(
+      `File ${operation} denied: path "${resolved}" is outside the allowed directory "${resolvedBase}". ` +
+      `Set the ALLOWED_FILE_DIR environment variable to change the allowed directory.`
+    );
+  }
+
+  return resolved;
+}
+
+/**
  * Get file information
  */
 export function getFileInfo(filePath: string): { exists: boolean; size?: number; stats?: fs.Stats } {
