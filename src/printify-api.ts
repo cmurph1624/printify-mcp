@@ -29,36 +29,36 @@ export class PrintifyAPI {
       enableLogging: false
     });
 
-    console.log('Printify API client initialized.');
+    console.error('Printify API client initialized.');
 
     // Set the shop ID if provided
     if (shopId) {
       this.shopId = shopId;
-      console.log('Shop ID set to:', shopId);
+      console.error('Shop ID set to:', shopId);
     } else {
-      console.log('No shop ID provided. Will attempt to select the first available shop during initialization.');
+      console.error('No shop ID provided. Will attempt to select the first available shop during initialization.');
     }
   }
 
   // Initialize the API client by fetching shops
   async initialize(): Promise<PrintifyShop[]> {
     try {
-      console.log('Initializing Printify API client...');
+      console.error('Initializing Printify API client...');
 
       // Get shops using the SDK
       try {
-        console.log('Fetching shops from Printify API...');
+        console.error('Fetching shops from Printify API...');
         const shops = await this.client.shops.list();
-        console.log('Shops response:', shops);
+        console.error('Shops response:', shops);
 
         if (shops && Array.isArray(shops)) {
           this.shops = shops;
-          console.log(`Found ${this.shops.length} shops:`, this.shops);
+          console.error(`Found ${this.shops.length} shops:`, this.shops);
 
           // If shops are available, set the first one as default if not already set
           if (this.shops.length > 0 && !this.shopId) {
             this.shopId = this.shops[0].id.toString();
-            console.log(`Setting default shop ID to: ${this.shopId}`);
+            console.error(`Setting default shop ID to: ${this.shopId}`);
 
             // Create a new client with the shop ID
             this.client = new Printify({
@@ -77,12 +77,12 @@ export class PrintifyAPI {
 
         // If we already have a shop ID, we can continue with that
         if (this.shopId) {
-          console.log(`Using existing shop ID: ${this.shopId}`);
+          console.error(`Using existing shop ID: ${this.shopId}`);
           return this.shops;
         }
 
         // Create some mock shops for testing as a fallback
-        console.log('Creating mock shops for testing...');
+        console.error('Creating mock shops for testing...');
         this.shops = [
           { id: 10001, title: 'Mock Shop 1', sales_channel: 'custom_integration' },
           { id: 10002, title: 'Mock Shop 2', sales_channel: 'storefront' }
@@ -90,7 +90,7 @@ export class PrintifyAPI {
 
         // Set the first mock shop as default
         this.shopId = this.shops[0].id.toString();
-        console.log(`Setting mock shop ID to: ${this.shopId}`);
+        console.error(`Setting mock shop ID to: ${this.shopId}`);
 
         return this.shops;
       }
@@ -118,7 +118,7 @@ export class PrintifyAPI {
 
   // Set the shop ID for subsequent requests
   setShopId(shopId: string) {
-    console.log(`Setting shop ID to: ${shopId}`);
+    console.error(`Setting shop ID to: ${shopId}`);
     this.shopId = shopId;
 
     // Create a new client instance with the new shop ID
@@ -129,17 +129,17 @@ export class PrintifyAPI {
       enableLogging: false
     });
 
-    console.log(`Shop ID set to: ${shopId} (created new client instance)`);
+    console.error(`Shop ID set to: ${shopId} (created new client instance)`);
   }
 
   // Get a list of shops
   async getShops() {
     try {
-      console.log('Fetching shops from Printify API...');
+      console.error('Fetching shops from Printify API...');
 
       try {
         const shops = await this.client.shops.list();
-        console.log('Shops response:', shops);
+        console.error('Shops response:', shops);
 
         if (shops && Array.isArray(shops)) {
           return shops;
@@ -151,7 +151,7 @@ export class PrintifyAPI {
         console.error('Error fetching shops from Printify API:', sdkError);
 
         // Return the mock shops we created during initialization
-        console.log('Returning mock shops...');
+        console.error('Returning mock shops...');
         return this.shops;
       }
     } catch (error) {
@@ -169,14 +169,14 @@ export class PrintifyAPI {
     try {
       try {
         // Use the products.list method with pagination parameters
-        console.log(`Fetching products for shop ${this.shopId}, page ${page}, limit ${limit}`);
+        console.error(`Fetching products for shop ${this.shopId}, page ${page}, limit ${limit}`);
         const response = await this.client.products.list({ page, limit });
         return response;
       } catch (sdkError) {
         console.error('Error fetching products from Printify API:', sdkError);
 
         // Return mock products for testing
-        console.log('Returning mock products...');
+        console.error('Returning mock products...');
         return { data: [] };
       }
     } catch (error) {
@@ -229,7 +229,7 @@ export class PrintifyAPI {
       }
 
       // Log the raw data received
-      console.log('Raw product data received:', JSON.stringify(productData, null, 2));
+      console.error('Raw product data received:', JSON.stringify(productData, null, 2));
 
       // Format print areas - handle both print_areas and printAreas formats
       const printAreasData = productData.print_areas || productData.printAreas;
@@ -264,8 +264,8 @@ export class PrintifyAPI {
         formattedData.print_areas.push(printAreaEntry);
       }
 
-      console.log(`Creating product with shop ID: ${this.shopId}`);
-      console.log('Formatted product data:', JSON.stringify(formattedData, null, 2));
+      console.error(`Creating product with shop ID: ${this.shopId}`);
+      console.error('Formatted product data:', JSON.stringify(formattedData, null, 2));
 
       try {
         // Use the products.create method with the formatted data
@@ -360,7 +360,7 @@ export class PrintifyAPI {
           }
         }
 
-        console.log(`Updating product ${productId} with formatted data:`, JSON.stringify(formattedData, null, 2));
+        console.error(`Updating product ${productId} with formatted data:`, JSON.stringify(formattedData, null, 2));
         return await this.client.products.updateOne(productId, formattedData);
       } else {
         // If no print_areas, just pass the data as is
@@ -472,18 +472,18 @@ export class PrintifyAPI {
   // Upload an image (supports URLs, local files, and base64 content)
   async uploadImage(fileName: string, source: string) {
     try {
-      console.log(`Uploading image ${fileName}`);
+      console.error(`Uploading image ${fileName}`);
 
       // If the source starts with http:// or https://, use the URL upload method
       if (source.startsWith('http://') || source.startsWith('https://')) {
-        console.log(`Uploading from URL: ${source.substring(0, 30)}...`);
+        console.error(`Uploading from URL: ${source.substring(0, 30)}...`);
         return await this.client.uploads.uploadImage({ file_name: fileName, url: source });
       }
 
       // If it's a file path, try to read the file and convert to base64
       if (source.startsWith('file://') || source.includes(':\\') || source.includes(':/') || !source.startsWith('data:')) {
         try {
-          console.log(`Attempting to read file from: ${source}`);
+          console.error(`Attempting to read file from: ${source}`);
 
           // Handle file:// protocol
           let filePath = source;
@@ -523,7 +523,7 @@ export class PrintifyAPI {
 
           // Get file stats
           const stats = fs.statSync(filePath);
-          console.log(`File size: ${stats.size} bytes`);
+          console.error(`File size: ${stats.size} bytes`);
 
           if (stats.size === 0) {
             throw new Error(`File is empty: ${filePath}`);
@@ -534,7 +534,7 @@ export class PrintifyAPI {
           }
 
           // Process the image with Sharp
-          console.log('Processing image with Sharp before uploading...');
+          console.error('Processing image with Sharp before uploading...');
 
           // Use Sharp directly
           const sharpInstance = sharp(filePath);
@@ -550,24 +550,24 @@ export class PrintifyAPI {
 
           // Get the buffer
           const buffer = await sharpInstance.toBuffer();
-          console.log(`Image processed successfully: ${buffer.length} bytes`);
+          console.error(`Image processed successfully: ${buffer.length} bytes`);
 
           // Determine the MIME type
           const mimeType = outputFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
 
           // Convert to base64
           const base64Data = buffer.toString('base64');
-          console.log(`Converted to base64 string of length ${base64Data.length}`);
+          console.error(`Converted to base64 string of length ${base64Data.length}`);
 
           // Create data URL with the proper MIME type prefix
           const dataUrl = `data:${mimeType};base64,${base64Data}`;
-          console.log(`Uploading with data URL (MIME type: ${mimeType})`);
+          console.error(`Uploading with data URL (MIME type: ${mimeType})`);
 
           try {
-            console.log(`Uploading to Printify with file_name: ${fileName}, contents length: ${base64Data.length}`);
+            console.error(`Uploading to Printify with file_name: ${fileName}, contents length: ${base64Data.length}`);
             // Use the dataUrl instead of just the base64Data
             const result = await this.client.uploads.uploadImage({ file_name: fileName, contents: dataUrl.split(',')[1] });
-            console.log('Upload successful, result:', result);
+            console.error('Upload successful, result:', result);
             return result;
           } catch (uploadError: any) {
             console.error('Error during Printify upload:', uploadError);
@@ -587,11 +587,11 @@ export class PrintifyAPI {
         // If source is base64 data with data URL prefix
         // Extract the base64 content
         const base64Content = source.split(',')[1];
-        console.log(`Uploading image with base64 data from data URL (length: ${base64Content.length})`);
+        console.error(`Uploading image with base64 data from data URL (length: ${base64Content.length})`);
         return await this.client.uploads.uploadImage({ file_name: fileName, contents: base64Content });
       } else {
         // Otherwise, assume it's a base64 encoded string without prefix
-        console.log(`Uploading image with base64 data (length: ${source.length})`);
+        console.error(`Uploading image with base64 data (length: ${source.length})`);
         return await this.client.uploads.uploadImage({ file_name: fileName, contents: source });
       }
     } catch (error: any) {

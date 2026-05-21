@@ -60,7 +60,7 @@ export async function uploadImageToPrintify(
 
     // Determine the source type
     const sourceType = determineImageSourceType(source);
-    console.log(`Uploading image to Printify from ${sourceType} source`);
+    console.error(`Uploading image to Printify from ${sourceType} source`);
 
     let image;
 
@@ -75,8 +75,8 @@ export async function uploadImageToPrintify(
         throw new Error(`File not found: ${filePath}`);
       }
 
-      console.log(`Uploading file to Printify: ${filePath}`);
-      console.log(`File size: ${fileInfo.size} bytes`);
+      console.error(`Uploading file to Printify: ${filePath}`);
+      console.error(`File size: ${fileInfo.size} bytes`);
 
       // Check file size limits
       if (fileInfo.size && fileInfo.size > 20 * 1024 * 1024) { // 20MB limit
@@ -91,18 +91,18 @@ export async function uploadImageToPrintify(
 
         if (fs.existsSync(filePath)) {
           const stats = fs.statSync(filePath);
-          console.log(`File verification before upload:`);
-          console.log(`- Path: ${filePath}`);
-          console.log(`- Absolute path: ${path.resolve(filePath)}`);
-          console.log(`- Size: ${stats.size} bytes`);
-          console.log(`- Created: ${stats.birthtime}`);
-          console.log(`- Permissions: ${stats.mode.toString(8)}`);
+          console.error(`File verification before upload:`);
+          console.error(`- Path: ${filePath}`);
+          console.error(`- Absolute path: ${path.resolve(filePath)}`);
+          console.error(`- Size: ${stats.size} bytes`);
+          console.error(`- Created: ${stats.birthtime}`);
+          console.error(`- Permissions: ${stats.mode.toString(8)}`);
 
           try {
             fs.accessSync(filePath, fs.constants.R_OK);
-            console.log(`- Readable: Yes`);
+            console.error(`- Readable: Yes`);
           } catch (e: any) {
-            console.log(`- Readable: No - ${e.message || e}`);
+            console.error(`- Readable: No - ${e.message || e}`);
           }
 
           // Try to read the first few bytes to verify the file is readable
@@ -111,7 +111,7 @@ export async function uploadImageToPrintify(
             const buffer = Buffer.alloc(10);
             const bytesRead = fs.readSync(fd, buffer, 0, 10, 0);
             fs.closeSync(fd);
-            console.log(`- Read test: Successfully read ${bytesRead} bytes`);
+            console.error(`- Read test: Successfully read ${bytesRead} bytes`);
           } catch (readError: any) {
             console.error(`- Read test failed: ${readError.message || readError}`);
           }
@@ -124,7 +124,7 @@ export async function uploadImageToPrintify(
               }
               const debugFilePath = path.join(debugDir, `upload_${Date.now()}_${path.basename(filePath)}`);
               fs.copyFileSync(filePath, debugFilePath);
-              console.log(`Debug copy: ${debugFilePath}`);
+              console.error(`Debug copy: ${debugFilePath}`);
             } catch (copyError: any) {
               console.error(`Debug copy failed: ${copyError.message || copyError}`);
             }
@@ -139,16 +139,16 @@ export async function uploadImageToPrintify(
       }
 
       // Upload to Printify
-      console.log(`Attempting to upload file to Printify: ${filePath}`);
+      console.error(`Attempting to upload file to Printify: ${filePath}`);
       image = await printifyClient.uploadImage(fileName, filePath);
-      console.log(`Upload successful! Image ID: ${image.id}`);
-      console.log(`Preview URL: ${image.preview_url}`);
+      console.error(`Upload successful! Image ID: ${image.id}`);
+      console.error(`Preview URL: ${image.preview_url}`);
     } else {
       // For URLs and base64 strings, upload directly
       image = await printifyClient.uploadImage(fileName, source);
     }
 
-    console.log(`Image uploaded successfully! ID: ${image.id}`);
+    console.error(`Image uploaded successfully! ID: ${image.id}`);
 
     return {
       success: true,

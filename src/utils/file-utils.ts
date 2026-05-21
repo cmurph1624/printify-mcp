@@ -10,7 +10,7 @@ import * as path from 'path';
 export function ensureDirectoryExists(dirPath: string): void {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
-    console.log(`Created directory: ${dirPath}`);
+    console.error(`Created directory: ${dirPath}`);
   }
 }
 
@@ -38,7 +38,7 @@ export function cleanupFiles(filePaths: string[]): void {
     if (filePath && fs.existsSync(filePath)) {
       try {
         fs.unlinkSync(filePath);
-        console.log(`Cleaned up file: ${filePath}`);
+        console.error(`Cleaned up file: ${filePath}`);
       } catch (error) {
         console.error(`Error cleaning up file ${filePath}:`, error);
       }

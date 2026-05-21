@@ -55,17 +55,17 @@ let replicateClient: ReplicateClient | null = null;
 
       if (currentShop) {
         // A shop was automatically selected (either from PRINTIFY_SHOP_ID or the first available shop)
-        console.log(`Printify SDK client initialized with shop: ${currentShop.title} (ID: ${currentShop.id})`);
-        console.log(`Shop selection: ${process.env.PRINTIFY_SHOP_ID ? 'From environment variable' : 'Automatically selected first shop'}`);
+        console.error(`Printify SDK client initialized with shop: ${currentShop.title} (ID: ${currentShop.id})`);
+        console.error(`Shop selection: ${process.env.PRINTIFY_SHOP_ID ? 'From environment variable' : 'Automatically selected first shop'}`);
       } else if (shops.length > 0) {
         // Shops exist but none was selected (this shouldn't happen with the current implementation)
-        console.log(`Printify SDK client initialized, but no shop was selected. Available shops: ${shops.length}`);
-        console.log('Attempting to select the first shop...');
+        console.error(`Printify SDK client initialized, but no shop was selected. Available shops: ${shops.length}`);
+        console.error('Attempting to select the first shop...');
         printifyClient.setShopId(shops[0].id.toString());
-        console.log(`Selected shop: ${shops[0].title} (ID: ${shops[0].id})`);
+        console.error(`Selected shop: ${shops[0].title} (ID: ${shops[0].id})`);
       } else {
-        console.log("Printify SDK client initialized, but no shops were found in your account.");
-        console.log("Please make sure your Printify account has at least one shop.");
+        console.error("Printify SDK client initialized, but no shops were found in your account.");
+        console.error("Please make sure your Printify account has at least one shop.");
       }
     }
 
@@ -76,7 +76,7 @@ let replicateClient: ReplicateClient | null = null;
       console.error("REPLICATE_API_TOKEN environment variable is not set. The Replicate API client will not be initialized.");
     } else {
       replicateClient = new ReplicateClient(replicateApiToken);
-      console.log('Replicate API client initialized successfully.');
+      console.error('Replicate API client initialized successfully.');
     }
   } catch (error) {
     console.error("Error initializing API clients:", error);
@@ -583,7 +583,7 @@ server.tool(
                          sourceType === 'file' ? url : // Show full file path
                          url.substring(0, 30) + '...';
 
-    console.log(`Attempting to upload image: ${fileName} from ${sourceType} source: ${sourcePreview}`);
+    console.error(`Attempting to upload image: ${fileName} from ${sourceType} source: ${sourcePreview}`);
 
     // Call the service
     const result = await uploadImageToPrintify(printifyClient, fileName, url);
@@ -943,7 +943,7 @@ server.tool(
       };
     }
 
-    console.log(`Starting generate_and_upload_image with prompt: ${prompt}`);
+    console.error(`Starting generate_and_upload_image with prompt: ${prompt}`);
 
     // Get default parameters first
     const defaults = replicateClient.getAllDefaults();
@@ -1009,10 +1009,10 @@ server.tool(
     }
 
     // STEP 2: Upload the processed image to Printify
-    console.log(`Uploading processed image to Printify`);
-    console.log(`Image buffer size: ${imageBuffer.length} bytes`);
-    console.log(`MIME type: ${mimeType}`);
-    console.log(`File name: ${finalFileName}`);
+    console.error(`Uploading processed image to Printify`);
+    console.error(`Image buffer size: ${imageBuffer.length} bytes`);
+    console.error(`MIME type: ${mimeType}`);
+    console.error(`File name: ${finalFileName}`);
 
     // Prepare for upload to Printify
     const uploadDetails = [
@@ -1034,7 +1034,7 @@ server.tool(
         const debugFilePath = path.join(debugDir, `debug_${Date.now()}_${finalFileName}`);
         if (imageBuffer) {
           fs.writeFileSync(debugFilePath, imageBuffer);
-          console.log(`Saved debug image: ${debugFilePath}`);
+          console.error(`Saved debug image: ${debugFilePath}`);
         }
       } catch (debugError) {
         console.error('Error saving debug file:', debugError);
@@ -1108,7 +1108,7 @@ server.tool(
         uploadMethod = "imgbb";
 
         // Log success
-        console.log(`Successfully uploaded image to ImgBB. URL: ${imageUrl}`);
+        console.error(`Successfully uploaded image to ImgBB. URL: ${imageUrl}`);
       } catch (imgbbError: any) {
         // Only fall back to direct upload if not using Ultra model
         if (isUsingUltraModel) {
@@ -1123,12 +1123,12 @@ server.tool(
           };
         }
 
-        console.log(`Error uploading to ImgBB: ${imgbbError.message || String(imgbbError)}. Falling back to direct base64 upload.`);
+        console.error(`Error uploading to ImgBB: ${imgbbError.message || String(imgbbError)}. Falling back to direct base64 upload.`);
         // Fall back to direct base64 upload for non-Ultra models
         uploadMethod = "direct";
       }
     } else if (!isUsingUltraModel) {
-      console.log("No ImgBB API key found. Using direct base64 upload.");
+      console.error("No ImgBB API key found. Using direct base64 upload.");
     }
 
     // STEP 4: Import Printify SDK
@@ -1155,7 +1155,7 @@ server.tool(
       });
 
       // Log client creation
-      console.log(`Created Printify client with shop ID: ${printifyClient?.getCurrentShopId() || 'undefined'}`);
+      console.error(`Created Printify client with shop ID: ${printifyClient?.getCurrentShopId() || 'undefined'}`);
     } catch (clientError: any) {
       return {
         content: [{
@@ -1176,7 +1176,7 @@ server.tool(
           file_name: finalFileName,
           url: imageUrl
         });
-        console.log(`Successfully uploaded image to Printify using ImgBB URL. Image ID: ${image.id}`);
+        console.error(`Successfully uploaded image to Printify using ImgBB URL. Image ID: ${image.id}`);
       } else {
         // Direct base64 upload
         // Convert buffer to base64 for Printify direct upload
@@ -1185,7 +1185,7 @@ server.tool(
           file_name: finalFileName,
           contents: base64Data
         });
-        console.log(`Successfully uploaded image to Printify using direct base64. Image ID: ${image.id}`);
+        console.error(`Successfully uploaded image to Printify using direct base64. Image ID: ${image.id}`);
       }
     } catch (uploadError: any) {
       return {
@@ -1291,9 +1291,9 @@ server.tool(
     // Determine which model to use (user-specified or default)
     const modelToUse = model || replicateClient.getDefaultModel();
 
-    console.log(`Starting generate_image with prompt: ${prompt}`);
-    console.log(`Using model: ${modelToUse}`);
-    console.log(`Output path: ${outputPath}`);
+    console.error(`Starting generate_image with prompt: ${prompt}`);
+    console.error(`Using model: ${modelToUse}`);
+    console.error(`Output path: ${outputPath}`);
 
     // Get default parameters first
     const defaults = replicateClient.getAllDefaults();
@@ -1422,7 +1422,7 @@ server.tool(
 const transport = new StdioServerTransport();
 await server.connect(transport);
 
-console.log("Printify MCP Server started and connected via stdio");
+console.error("Printify MCP Server started and connected via stdio");
 
 // Default export
 export default server;
