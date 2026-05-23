@@ -489,11 +489,11 @@ export class PrintifyAPI {
           let filePath = source;
           if (source.startsWith('file:///')) {
             filePath = source.replace('file:///', '');
-          }
-
-          // Handle Windows paths
-          if (filePath.startsWith('/')) {
-            filePath = filePath.substring(1);
+            // On Windows, file:///C:/path → C:/path (strip was correct)
+            // On Unix, file:///home/user → home/user (need to restore leading /)
+            if (!filePath.match(/^[A-Za-z]:/)) {
+              filePath = '/' + filePath;
+            }
           }
 
           filePath = validateFilePath(filePath, 'read');
