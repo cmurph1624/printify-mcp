@@ -26,7 +26,8 @@ export class PrintifyAPI {
     this.client = new Printify({
       accessToken: apiToken,
       shopId: shopId || undefined,
-      enableLogging: false
+      enableLogging: false,
+      timeout: 30000
     });
 
     console.error('Printify API client initialized.');
@@ -64,7 +65,8 @@ export class PrintifyAPI {
             this.client = new Printify({
               accessToken: this.apiToken,
               shopId: this.shopId,
-              enableLogging: false
+              enableLogging: false,
+              timeout: 30000
             });
           }
         } else {
@@ -126,7 +128,8 @@ export class PrintifyAPI {
     this.client = new Printify({
       accessToken: this.apiToken,
       shopId: shopId,
-      enableLogging: false
+      enableLogging: false,
+      timeout: 30000
     });
 
     console.error(`Shop ID set to: ${shopId} (created new client instance)`);
@@ -137,22 +140,14 @@ export class PrintifyAPI {
     try {
       console.error('Fetching shops from Printify API...');
 
-      try {
-        const shops = await this.client.shops.list();
-        console.error('Shops response:', shops);
+      const shops = await this.client.shops.list();
+      console.error('Shops response:', shops);
 
-        if (shops && Array.isArray(shops)) {
-          return shops;
-        } else {
-          console.warn('No shops found in the Printify API response');
-          return [];
-        }
-      } catch (sdkError) {
-        console.error('Error fetching shops from Printify API:', sdkError);
-
-        // Return the mock shops we created during initialization
-        console.error('Returning mock shops...');
-        return this.shops;
+      if (shops && Array.isArray(shops)) {
+        return shops;
+      } else {
+        console.warn('No shops found in the Printify API response');
+        return [];
       }
     } catch (error) {
       console.error('Error fetching shops:', error);
@@ -167,18 +162,9 @@ export class PrintifyAPI {
     }
 
     try {
-      try {
-        // Use the products.list method with pagination parameters
-        console.error(`Fetching products for shop ${this.shopId}, page ${page}, limit ${limit}`);
-        const response = await this.client.products.list({ page, limit });
-        return response;
-      } catch (sdkError) {
-        console.error('Error fetching products from Printify API:', sdkError);
-
-        // Return mock products for testing
-        console.error('Returning mock products...');
-        return { data: [] };
-      }
+      console.error(`Fetching products for shop ${this.shopId}, page ${page}, limit ${limit}`);
+      const response = await this.client.products.list({ page, limit });
+      return response;
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
