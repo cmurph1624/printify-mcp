@@ -2,6 +2,41 @@
 
 A Model Context Protocol (MCP) server for integrating AI assistants with Printify's print-on-demand platform.
 
+## About this fork
+
+This is a fork of [TSavo/printify-mcp](https://github.com/TSavo/printify-mcp) (ISC license). I
+used it as the Printify layer in a print-on-demand pipeline: Canva design, image checks, SEO
+listing copy, Printify product, then Etsy. Running that workflow day to day turned up the bugs and
+security gaps fixed below. Everything after this section is the upstream documentation.
+
+### What I changed
+
+**Security hardening**
+- `upload_image` and `generate_image` read and write only inside an allowed directory (the
+  working directory, or `ALLOWED_FILE_DIR`), which closes a path-traversal hole.
+- API tokens no longer show up in logs, and the SDK's verbose logging is off.
+- Error responses sent to MCP clients no longer include stack traces, system info or response
+  headers.
+- Debug file writes happen only when `DEBUG` is set.
+
+**Bug fixes**
+- **stdio transport corruption.** Plain `console.log` output went to stdout and broke the
+  JSON-RPC stream (`Unexpected token 'P', "Printify A"... is not valid JSON`). All 92 calls now
+  log to stderr.
+- **`create_product` reported failure on success.** The SDK's default 5 s timeout expired on large
+  blueprints after Printify had already created the product. The timeout is now 30 s.
+- **`list_products` always returned `Count: undefined`.** The page and limit arguments were
+  swapped, and the code read `.length` off the SDK's `{ current_page, data }` envelope. Results now
+  include an `id`/`title` list so downstream tools can verify a product exists.
+- **Errors disguised as empty results.** `getProducts` and `getShops` swallowed API failures and
+  returned empty or mock data. They now rethrow.
+- **Unix absolute paths.** A Windows path fix stripped the leading `/` from every path. It now
+  applies only to `file://` drive-letter paths.
+
+> The published npm package (`@tsavo/printify-mcp`) and Docker image (`tsavo/printify-mcp`) are
+> upstream builds and do not include these changes. To use this fork, build from source
+> ([Installation](#installation)) and point Claude Desktop at `dist/index.js`.
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -84,7 +119,7 @@ This MCP server provides the following capabilities:
 
 ```bash
 # Clone the repository
-git clone https://github.com/tsavo/printify-mcp.git
+git clone https://github.com/cmurph1624/printify-mcp.git
 cd printify-mcp
 
 # Install dependencies
@@ -331,7 +366,7 @@ If you prefer to run the server in a Docker container, you have two options:
 
 2. Clone this repository to your local machine:
    ```bash
-   git clone https://github.com/tsavo/printify-mcp.git
+   git clone https://github.com/cmurph1624/printify-mcp.git
    cd printify-mcp
    ```
 
@@ -393,7 +428,7 @@ If you prefer to work with the source code directly without Docker:
 
 1. Clone this repository to your local machine:
    ```bash
-   git clone https://github.com/tsavo/printify-mcp.git
+   git clone https://github.com/cmurph1624/printify-mcp.git
    cd printify-mcp
    ```
 
